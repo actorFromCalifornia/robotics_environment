@@ -1,2 +1,9 @@
-# robotics_environment
-Base stack for robotics environment
+# Решение полуфинала True Tech Champ 2025
+
+## Запуск в симуляторе
+
+1. Откройте склонированный репозиторий в VS Code.
+2. Выполните задачу "run simulator" (Ctrl+Shift+P -> Tasks: Run task -> run simulator).
+3. Запустите отладку на симуляторе Sim Solution из меню Run and Debug (Ctrl+Shift+D).
+4. После этого можно подключать rviz2 и публиковать цель.
+5. По окончании работы надо закрыть симулятор Webots и завершить все запущенные задачи в VS Code.

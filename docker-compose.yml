@@ -1,0 +1,54 @@
+services:
+  foxglove-bridge:
+    platform: linux/amd64
+    build: .
+    container_name: foxglove-bridge
+    command: /bin/bash -lc "source /workspace/install/setup.bash && source /root/.bashrc && ros2 run foxglove_bridge foxglove_bridge --port 8765 --address 0.0.0.0"
+    ports:
+      - "8765:8765"   # Foxglove WebSocket Bridge
+    environment:
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-7}
+      - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
+
+  bag_player:
+    platform: linux/amd64
+    build: .
+    profiles: ["bag"]
+    command: bash -lc "source /workspace/install/setup.bash && source /root/.bashrc && ros2 bag play \"${BAG_PATH:-/workspace/bags/rosbag2_2025_10_29-22_39_40}\" --clock --rate 0.5 --topics /tf /tf_static /scan_raw /scan /plan /global_costmap/costmap"
+    environment:
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-7}
+      - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
+    volumes:
+      - ./bags:/workspace/bags:ro
+    depends_on:
+      - foxglove-bridge
+
+  allright-solution:
+    platform: linux/amd64
+    build: .
+    container_name: allright-solution
+    profiles: ["solution"]
+    # Пробрасываем устройства USB0 - лидар, ACM1 - моторы
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+      - "/dev/ttyACM1:/dev/ttyACM1"
+    # Если права на устройстве строгие — упростит жизнь:
+    privileged: true
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - ROS_DOMAIN_ID=0
+      - ROS_LOCALHOST_ONLY=1
+      - WEBOTS_HEADLESS=1
+      - WEBOTS_DISABLE_SOUND=1
+      - QT_QPA_PLATFORM=xcb
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - XDG_RUNTIME_DIR=/tmp
+    # Если у тебя несколько сетевых ROS-нод — удобно:
+    network_mode: "host"
+    # Директория для сохранения данных из докера
+    volumes:
+    - ./docker_ws:/workspace/docker_ws
+    # Стартуем решение
+    command: >
+      bash -lc "source /workspace/install/setup.bash && source /root/.bashrc && \
+                xvfb-run -a --server-args='-screen 0 1280x720x24 -ac +extension GLX +render -noreset' ros2 launch /workspace/simulation.launch.py"
